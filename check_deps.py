@@ -9,7 +9,9 @@ STDLIB = {"os", "glob", "json", "sys", "time", "math", "shutil", "argparse", "su
 THIRD_PARTY = {
     "numpy": "numpy",
     "sentencepiece": "sentencepiece",
-    "cupy": "cupy",  # 可选: 仅在 GPU 训练时使用
+    "torch": "torch",                # 训练/推理核心框架
+    "tensorboard": "tensorboard",    # 可选: 训练曲线日志
+    "safetensors": "safetensors",    # 可选: 仅 export_hf.py 导出 HF 格式时需要
 }
 
 
@@ -23,7 +25,7 @@ def check(name, pip_name, required=True):
         if required:
             print(f"[缺失] {name} (pip install {pip_name})")
             return False
-        print(f"[可选] {name} 未安装 (GPU 训练时需要: pip install {pip_name})")
+        print(f"[可选] {name} 未安装 (pip install {pip_name})")
         return True
 
 
@@ -42,14 +44,14 @@ def main():
             ok = False
 
     for mod, pip in sorted(THIRD_PARTY.items()):
-        if not check(mod, pip, required=(mod != "cupy")):
+        if not check(mod, pip, required=(mod not in ("tensorboard", "safetensors"))):
             ok = False
 
     print("-" * 50)
     if ok:
         print("全部依赖已满足")
     else:
-        print("存在缺失依赖, 可运行: pip install numpy sentencepiece")
+        print("存在缺失依赖, 可运行: pip install numpy sentencepiece torch")
         sys.exit(1)
 
 
