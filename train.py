@@ -111,12 +111,24 @@ def save_checkpoint(model, optimizer, save_dir, *, step, epoch, best_val_loss,
             shutil.copy2(src, os.path.join(save_dir, fn))
 
 
+def _torch_load_checkpoint(path, device):
+    """加载受信任的训练检查点，兼容新旧 PyTorch 的 ``weights_only`` 参数。"""
+    try:
+        # PyTorch 2.0+ 接受该参数；显式关闭以支持包含训练状态的 checkpoint。
+        return torch.load(path, map_location=device, weights_only=False)
+    except TypeError as e:
+        # PyTorch 1.x 没有 weights_only，会把它传给 Unpickler 后抛出 TypeError。
+        if "weights_only" not in str(e):
+            raise
+        return torch.load(path, map_location=device)
+
+
 def load_checkpoint(save_dir, device):
     """优先恢复 ckpt_last.pt（训练结束时的完整状态），其次 ckpt.pt（验证最优）。"""
     for name in ("ckpt_last.pt", "ckpt.pt"):
         path = os.path.join(save_dir, name)
         if os.path.isfile(path):
-            ckpt = torch.load(path, map_location=device, weights_only=False)
+            ckpt = _torch_load_checkpoint(path, device)
             model = MiniGPT(ModelConfig(**ckpt["config"])).to(device)
             model.load_state_dict(ckpt["model"])
             return model, ckpt

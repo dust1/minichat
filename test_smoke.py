@@ -190,7 +190,12 @@ def main():
     with tempfile.TemporaryDirectory() as d:
         path = os.path.join(d, "ckpt.pt")
         torch.save({"model": model.state_dict(), "config": asdict(cfg)}, path)
-        ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        try:
+            ckpt = torch.load(path, map_location="cpu", weights_only=False)
+        except TypeError as e:
+            if "weights_only" not in str(e):
+                raise
+            ckpt = torch.load(path, map_location="cpu")
         model2 = MiniGPT(ModelConfig(**ckpt["config"]))
         model2.load_state_dict(ckpt["model"])
         model2.eval()
